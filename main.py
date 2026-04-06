@@ -1,4 +1,4 @@
-import extract
+import Scripts.extract as extract
 import logging
 
 logging.basicConfig(
@@ -17,8 +17,12 @@ def main():
     dataPlanets = extract.getData("https://swapi.dev/api/planets/")
     #dataFilms = extract.getData("https://swapi.dev/api/films/")
 
-    print(dataPeople)
-    print(dataPlanets)
+    logger.info("Guardando datos crudos en Capa Bronze")
+    extract.saveToBronze(dataPeople, "people_raw")
+    extract.saveToBronze(dataPlanets, "planets_raw")
+    #print(dataPeople)
+    #print(dataPlanets)
+    #print(type(dataPeople))
     #print(dataFilms)
 
 if __name__ == "__main__":
