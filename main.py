@@ -15,20 +15,17 @@ logger = logging.getLogger(__name__)
 def main():
     
     logger.info("Extracción de la info desde la API")
-    #dataPeople = extract.getData("https://swapi.dev/api/people/")
-    #dataPlanets = extract.getData("https://swapi.dev/api/planets/")
+    dataPeople = extract.getData("https://swapi.dev/api/people/")
+    dataPlanets = extract.getData("https://swapi.dev/api/planets/")
     #dataFilms = extract.getData("https://swapi.dev/api/films/")
 
     logger.info("Guardando datos crudos en Capa Bronze")
-    #extract.saveToBronze(dataPeople, "people_raw")
-    #extract.saveToBronze(dataPlanets, "planets_raw")
+    extract.saveToBronze(dataPeople, "people_raw")
+    extract.saveToBronze(dataPlanets, "planets_raw")
     logger.info("Transformando datos")
-    transform.transformData("people_raw")
-    transform.transformData("planets_raw")
-    #print(dataPeople)
-    #print(dataPlanets)
-    #print(type(dataPeople))
-    #print(dataFilms)
+    people_data = transform.transformData("people_raw")
+    planets_data = transform.transformData("planets_raw")
+
 
 if __name__ == "__main__":
     main()

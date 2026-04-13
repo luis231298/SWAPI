@@ -5,37 +5,46 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-def extract_id(df: pd.DataFrame) -> pd.DataFrame:
+def clean_url_list(url_string) -> list:
     try:
-        logger.info("Extrayendo el id de la data")
-        df["id"] = df["url"].str.extract(r'(\d+)').astype('Int64')
+        logger.info(f"Limpiando la data de url_list: {url_string}")
+        if isinstance(url_string, list):
+            return [int(url.rstrip("/").split("/")[-1]) for url in url_string if url]
+        elif isinstance(url_string, str) and url_string != "":
+            return [int(url_string.rstrip("/").split("/")[-1])]
+        return []
     except Exception as e:
-        logger.error(f"Error al extraer el id de la data: {e}")
-        return None
-    return df
-
-
+        logger.error(f"Error al limpiar la data de url_list: {e}")
+        return []
 
 def clean_people(df: pd.DataFrame) -> pd.DataFrame:
     try:
         logger.info("Limpiando la data de people_raw")
         df['height'] = pd.to_numeric(df['height'], errors='coerce')
         df['mass'] = pd.to_numeric(df['mass'], errors='coerce')
-        df['homeworld'] = df['homeworld'].apply(lambda x: ", ".join(x) if isinstance(x, list) else str(x))
-        df['homeworld_id'] = df['homeworld'].str.extract(r'(\d+)').astype('Int64')
-        df['species_id'] = df['species'].apply(lambda x: ", ".join(x) if isinstance(x, list) else str(x))
-        df['species_id'] = df['species_id'].str.extract(r'(\d+)').astype('Int64')
-        df['films_id'] = df['films'].apply(lambda x: ", ".join(x) if isinstance(x, list) else str(x))
-        df['films_id'] = df['films_id'].str.extract(r'(\d+)').astype('Int64')
         df["id"] = df["url"].str.extract(r'(\d+)').astype('Int64')
+        
+        df['homeworld_id'] = df['homeworld'].apply(clean_url_list)
+        df_homeworld_bridge = df[['id', 'homeworld_id']].explode('homeworld_id')
+        df_homeworld_bridge = df_homeworld_bridge.dropna().astype('Int64')
+        df['species_id'] = df['species'].apply(clean_url_list)
+        df_species_bridge = df[['id', 'species_id']].explode('species_id')
+        df_species_bridge = df_species_bridge.dropna().astype('Int64')
+
+        df['films_id'] = df['films'].apply(clean_url_list)
+        df_films_bridge = df[['id', 'films_id']].explode('films_id')
+        df_films_bridge = df_films_bridge.dropna().astype('Int64')
+
         df = df.replace("unknown", None)
         df = df.replace("n/a", None)
-        df = df.drop(columns=["url", "species", "films"])
-        df.drop_duplicates(subset=['id'])
+        df = df.drop(columns=["url", "species", "films", "homeworld"])
+        df = df.drop(columns=["homeworld_id", "species_id", "films_id"])
+        
+        df = df.drop_duplicates(subset=['id'])
     except Exception as e:
         logger.error(f"Error al limpiar la data de people_raw: {e}")
         return None
-    return df
+    return df, df_homeworld_bridge, df_species_bridge, df_films_bridge
 
 def clean_planets(df: pd.DataFrame) -> pd.DataFrame:
     try:
@@ -45,26 +54,34 @@ def clean_planets(df: pd.DataFrame) -> pd.DataFrame:
         df['diameter'] = pd.to_numeric(df['diameter'], errors='coerce')
         df['surface_water'] = pd.to_numeric(df['surface_water'], errors='coerce')
         df['population'] = pd.to_numeric(df['population'], errors='coerce')
-        df['residents'] = df['residents'].apply(lambda x: ", ".join(x) if isinstance(x, list) else str(x))
-        df['residents_id'] = df['residents'].str.extract(r'(\d+)').astype('Int64')
-        df['films_id'] = df['films'].apply(lambda x: ", ".join(x) if isinstance(x, list) else str(x))
-        df['films_id'] = df['films_id'].str.extract(r'(\d+)').astype('Int64')
+        
         df["id"] = df["url"].str.extract(r'(\d+)').astype('Int64')
+
+        df['residents_id'] = df['residents'].apply(clean_url_list)
+        df_residents_bridge = df[['id', 'residents_id']].explode('residents_id')
+        df_residents_bridge = df_residents_bridge.dropna().astype('Int64')
+
+        df['films_id'] = df['films'].apply(clean_url_list)
+        df_films_bridge = df[['id', 'films_id']].explode('films_id')
+        df_films_bridge = df_films_bridge.dropna().astype('Int64')
+        
         df = df.replace("unknown", None)
         df = df.replace("n/a", None)
         df = df.drop(columns=["url", "residents", "films"])
-        df.drop_duplicates(subset=['id'])
+        df = df.drop(columns=["residents_id", "films_id"])
+        
+        df = df.drop_duplicates(subset=['id'])
     except Exception as e:
         logger.error(f"Error al limpiar la data de planets_raw: {e}")
         return None
-    return df
+    return df, df_residents_bridge, df_films_bridge
 
 def transformData(jsonName: str) -> pd.DataFrame:
     try:
         if jsonName == "people_raw":
             columns = ["name", "height", "mass", "homeworld", "films", "species", "url"]
         elif jsonName == "planets_raw":
-            columns = ["name", "rotation_period", "orbital_period", "diameter", "climate", "gravity", "terrain", "surface_water", "population", "residents", "films", "created", "edited", "url"]
+            columns = ["name", "rotation_period", "orbital_period", "diameter", "climate", "gravity", "terrain", "surface_water", "population", "residents", "films", "url"]
         else:
             logger.warning(f"No se encontró el archivo {jsonName}.json")
             return None
@@ -82,17 +99,19 @@ def transformData(jsonName: str) -> pd.DataFrame:
         df = df[columns]
 
         if jsonName == "people_raw":
-            df = clean_people(df)
+            df, df_homeworld_bridge, df_species_bridge, df_films_bridge = clean_people(df)
+            logger.info(f"Transformación de {jsonName} completada exitosamente")
+            return [df, df_homeworld_bridge, df_species_bridge, df_films_bridge]
+
         elif jsonName == "planets_raw":
-            df = clean_planets(df)
+            df, df_residents_bridge, df_films_bridge = clean_planets(df)
+            logger.info(f"Transformación de {jsonName} completada exitosamente")
+            return [df, df_residents_bridge, df_films_bridge]
+
         else:
             logger.warning(f"No se encontró el archivo {jsonName}.json")
-            return None
+            return None  
 
-        print(df.head())
-        print(df.info())
-        logger.info(f"Transformación de {jsonName} completada exitosamente")
-        return df  
     except FileNotFoundError:
         logger.error(f"El archivo no se encontró: {ruta}")
         return None
