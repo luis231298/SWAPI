@@ -24,7 +24,7 @@ mass FLOAT,
 homeworld_id INTEGER REFERENCES silver.dim_planets(id)
 );
 
-CREATE TABLE dim_people.fact_people_films(
+CREATE TABLE silver.fact_people_films(
 character_id INTEGER REFERENCES silver.dim_people(id),
 film_id INTEGER
 );
