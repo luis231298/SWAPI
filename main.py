@@ -15,9 +15,9 @@ logger = logging.getLogger(__name__)
 def main():
     
     logger.info("Extracción de la info desde la API")
-    dataPeople = extract.getData("https://swapi.dev/api/people/")
-    dataPlanets = extract.getData("https://swapi.dev/api/planets/")
-    #dataFilms = extract.getData("https://swapi.dev/api/films/")
+    dataPeople = extract.getData("https://swapi.py4e.com/api/people/")
+    dataPlanets = extract.getData("https://swapi.py4e.com/api/planets/")
+    #dataFilms = extract.getData("https://swapi.py4e.com/api/films/")
 
     logger.info("Guardando datos crudos en Capa Bronze")
     extract.saveToBronze(dataPeople, "people_raw")
