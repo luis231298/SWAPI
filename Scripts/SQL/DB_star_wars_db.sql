@@ -35,6 +35,6 @@ species_id INTEGER
 );
 
 CREATE TABLE silver.fact_planet_residents(
-planet_id INTEGER REFERENCES silver.dim_planet(id),
+planet_id INTEGER REFERENCES silver.dim_planets(id),
 resident_id INTEGER REFERENCES silver.dim_people(id)
 );
