@@ -1,3 +1,4 @@
+from Scripts import load
 import logging
 import Scripts.extract as extract
 import Scripts.transform as transform
@@ -23,8 +24,21 @@ def main():
     extract.saveToBronze(dataPeople, "people_raw")
     extract.saveToBronze(dataPlanets, "planets_raw")
     logger.info("Transformando datos")
-    people_data = transform.transformData("people_raw")
-    planets_data = transform.transformData("planets_raw")
+    
+    df_people, df_homeworld_bridge, df_species_bridge, df_people_films = transform.transformData("people_raw")
+    df_planets, df_residents_bridge, df_planets_films = transform.transformData("planets_raw")
+
+    diccionario_para_carga = {
+        "dim_planets": df_planets,
+        "dim_people": df_people,
+        "fact_people_films": df_people_films,
+        "fact_people_species": df_species_bridge,
+        "fact_planet_residents": df_residents_bridge
+    }
+
+    
+    load.load_data_to_silver(diccionario_para_carga)
+
 
 
 if __name__ == "__main__":
