@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 def clean_url_list(url_string) -> list:
     try:
-        logger.info(f"Limpiando la data de url_list: {url_string}")
+        logger.debug(f"Limpiando la data de url_list: {url_string}")
         if isinstance(url_string, list):
             return [int(url.rstrip("/").split("/")[-1]) for url in url_string if url]
         elif isinstance(url_string, str) and url_string != "":
@@ -22,18 +22,32 @@ def clean_people(df: pd.DataFrame) -> pd.DataFrame:
         logger.info("Limpiando la data de people_raw")
         df['height'] = pd.to_numeric(df['height'], errors='coerce')
         df['mass'] = pd.to_numeric(df['mass'], errors='coerce')
-        df["id"] = df["url"].str.extract(r'(\d+)').astype('Int64')
+        df["id"] = df["url"].str.rstrip("/").str.split("/").str[-1].astype('Int64')
         
         df['homeworld_id'] = df['homeworld'].apply(clean_url_list)
         df_homeworld_bridge = df[['id', 'homeworld_id']].explode('homeworld_id')
         df_homeworld_bridge = df_homeworld_bridge.dropna().astype('Int64')
+
         df['species_id'] = df['species'].apply(clean_url_list)
         df_species_bridge = df[['id', 'species_id']].explode('species_id')
         df_species_bridge = df_species_bridge.dropna().astype('Int64')
 
+        df_species_bridge = df_species_bridge.rename(
+            columns={
+                "id": "character_id"
+            }
+        )
+
         df['films_id'] = df['films'].apply(clean_url_list)
         df_films_bridge = df[['id', 'films_id']].explode('films_id')
         df_films_bridge = df_films_bridge.dropna().astype('Int64')
+
+        df_films_bridge = df_films_bridge.rename(
+            columns={
+                "id": "character_id",
+                "films_id": "film_id"
+            }
+        )
 
         df = df.replace("unknown", None)
         df = df.replace("n/a", None)
@@ -41,6 +55,8 @@ def clean_people(df: pd.DataFrame) -> pd.DataFrame:
         df = df.drop(columns=["homeworld_id", "species_id", "films_id"])
         
         df = df.drop_duplicates(subset=['id'])
+
+        
     except Exception as e:
         logger.error(f"Error al limpiar la data de people_raw: {e}")
         return None
@@ -55,7 +71,7 @@ def clean_planets(df: pd.DataFrame) -> pd.DataFrame:
         df['surface_water'] = pd.to_numeric(df['surface_water'], errors='coerce')
         df['population'] = pd.to_numeric(df['population'], errors='coerce')
         
-        df["id"] = df["url"].str.extract(r'(\d+)').astype('Int64')
+        df["id"] = df["url"].str.rstrip("/").str.split("/").str[-1].astype('Int64')
 
         df['residents_id'] = df['residents'].apply(clean_url_list)
         df_residents_bridge = df[['id', 'residents_id']].explode('residents_id')
@@ -64,6 +80,13 @@ def clean_planets(df: pd.DataFrame) -> pd.DataFrame:
         df['films_id'] = df['films'].apply(clean_url_list)
         df_films_bridge = df[['id', 'films_id']].explode('films_id')
         df_films_bridge = df_films_bridge.dropna().astype('Int64')
+
+        df_residents_bridge = df_residents_bridge.rename(
+            columns={
+                "id": "planet_id",
+                "residents_id": "resident_id"
+            }
+        )
         
         df = df.replace("unknown", None)
         df = df.replace("n/a", None)
