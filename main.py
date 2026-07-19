@@ -39,6 +39,8 @@ def main():
     
     load.load_data_to_silver(diccionario_para_carga)
 
+    logger.info("ETL Completado!!")
+
 
 
 if __name__ == "__main__":
